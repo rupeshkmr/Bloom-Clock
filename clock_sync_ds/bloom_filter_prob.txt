@@ -1,0 +1,42 @@
+A bloom filter can be seen as F = {0,1}^m 
+For each word, hashing means setting k indexes in F to 1, such as F[ h_i(w) ] = 1 where h_i is the i-th hash function in { h_1, ... , h_k }
+We do this for all words in the dictionary/list to input
+
+Initially we put all values of F to 0, so F={0}^m
+Then we apply one hash like h_1(w) = some_index
+So now F[ some_index ] = 1
+
+Then the probability of finding a bit at one, is literally one in m since there is only a single 1 in F: 
+p1 = 1/m 
+
+So that the probability of finding a bit at zero would be the inverse : 
+p0 = 1 - p1 = 1 - 1/m 
+
+(**) So after applying all k hash functions to the first word the probability of finding a bit at zero becomes  :
+p' =(1-1/m)^k 
+ 
+Then after hashing all words (or until the iteration i of the list of words), the probability of finding a bit at zero will be :
+p=(1-1/m)^(k*i)
+
+So now the probability of getting a one for a random word w, p(F[h_i(w)]=1) is the inverse of p which is : 
+q = 1 - p  = 1 -  (1-1/m)^(k*i)
+
+Therefore if we want the probability of getting a false positive = an error, we want the probability of getting k times the value 1 in succession. 
+So that F[h_1(w)] = 1 AND F[h_2(w)] = 1 AND F[h_3(w)] = 1 ....AND F[h_k(w)] =1
+But we know from previous that p(F[h_i(w)]=1) = q  = 1 -  (1-1/m)^(k*i)
+
+Finally the probability of an error is 
+e = p(F[h_1(w)]=1)*p(F[h_2(w)]=1)*...*p(F[h_k(w)]=1) = q*q*q...*q = q^k = ( 1 -  (1-1/m)^(k*i) )^k 
+
+
+** In this calculation one could argue that after completing the first word, why wouldn't the probability of finding a zero be 
+p'  =  1 - k/m 
+It's a valid remarque, we could say that after applying each h_1(w) to h_k(w) we've been adding a new 1 to F, so p1 = k/m 
+While that is highly possible, since h is built so that each hash gives a different result, it wouldn't be mathematically correct , because that would violate the case where h_1(w) = h_2(w) for instance. (If you assume all other h_i(w) are distinct, then p' = 1 - (k-1)/m in that case) 
+Then what if three hashes are the same, what if any random number n of hashes are the same, this formula would lead to incoherence. 
+
+=> My intuition to solve this question is that when you don't know how many ones are in your filter the experience of drawing a zero can be simulated as not drawing one for all possible values of h_i(w). 
+So the probability of not drawing one (or drawing 0) for the first index h_1(w) is (1-1/m), then for h_2(w) it's the same (1-1/m) etc... until h_k(w)
+And so drawing a zero when you don't know exactly how many ones there are in your Filter is like not drawing one for the first hashed index, and not drawing one for the second etc... until not drawing one for the last hashed index. 
+
+In fact the more I think about this the more I find it counterintuitive, I'm not 100% sure how to interpret this formula probabilistically, because when you say the probability of getting a 0 for a single hash, that's one operation, but when you say p = (1-1/m)^k that's the probability of multiple events happening in succession.
