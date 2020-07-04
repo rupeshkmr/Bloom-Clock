@@ -4,5 +4,5 @@ Clock synchronization is a fundamental requirement in distributed system and it 
 <br/>
 <br/>
 <img src="https://github.com/rupeshkmr/college_work/blob/master/clock_sync_ds/Group%201.jpg" width="1000px" height="500px" align="center" alt="BF">
-
-On the basis of prior algorithms, an improved and efficient time synchronization algorithm is proposed to neutralize errors and this repository contains related files for the same.
+<br/>
+On the basis of prior algorithms, an improved and efficient time synchronization algorithm is proposed to neutralize errors and the repository contains all the related files used in analysis and simulation results to prove the efficiency of the proposed protocol.
