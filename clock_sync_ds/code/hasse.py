@@ -2,7 +2,7 @@
 class Hasse(object):
     def __init__(self,poset):
         self.poset = poset
-        print("poset = ",self.poset)
+        #print("poset = ",self.poset)
         self.table=self.init_table(self.poset)
         self.table = self.build_table(self.poset,self.table)
         self.hasse = self.get_hasse(self.poset,self.table)
@@ -29,17 +29,17 @@ class Hasse(object):
     def compare(self,i,j,poset):
         t = 0
         keys = list(poset.keys())
-        # print("comparing posets")
-        # print(poset[i])
-        # print(poset[j])
+        # #print("comparing posets")
+        # #print(poset[i])
+        # #print(poset[j])
         for a in range(len(poset[keys[i]])):
             if(poset[keys[i]][a]<=poset[keys[j]][a]):
                 t += 1
         if(t == len(poset[keys[i]])):
-            # print("Returning True")
+            # #print("Returning True")
             return True
         else:
-            # print("Returning False t= {} len = {}".format(t,len(poset[i])))
+            # #print("Returning False t= {} len = {}".format(t,len(poset[i])))
             return False
     @classmethod
     def remove_transitivity(self,table,i,j,poset):
@@ -74,5 +74,5 @@ class Hasse(object):
 #
 # obj = Hasse([[0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1], [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]]
 # )
-# obj.print_table()
-# print(obj.hasse)
+# obj.#print_table()
+# #print(obj.hasse)

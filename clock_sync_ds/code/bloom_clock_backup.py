@@ -1,25 +1,32 @@
-from multiprocessing import Process,Pipe
+# referenced from https://towardsdatascience.com/understanding-lamport-timestamps-with-pythons-multiprocessing-library-12a6427881c6
+from multiprocessing import Process,Pipe,Manager
 from os import getpid
 from datetime import datetime
 from bloom_filter import BloomFilter
 from hasse import Hasse
+import json
+import csv
 n = 8#number of items_count
 p = 0.29 # False positive probability
 t = [0,0,0]# to store the global timestamp for each process
+
 #Helper Functions
 #Print Local timestamp and actual time on machine executing the processes
 def local_time(counter):
     return counter
 
 #Calculate new timestamp when a process receives a msg
-def calc_recv_timestamp(recv_time_stamp, counter):
-    counter.update_filter(recv_time_stamp,t)
+def calc_recv_timestamp(eid,recv_time_stamp, counter):
+    counter.update_filter(eid,recv_time_stamp)
     return counter
 #prints all the previous timestamps for a particular process
 def print_history(counter,pid):
     print("Displaying histories of process pid = ",pid)
     for i in counter.history.keys():
         print(i,":\t",counter.history[i])
+
+
+
 
 
 
@@ -33,11 +40,18 @@ def print_history(counter,pid):
 #return local_timestamp +1
 #eid is the event id string name
 def event(pid,counter,eid):
-    global t
+    global t,poset1
     t[pid] += 1
-    counter.add(eid,t[pid])
-    print('Event happened in {} !'.format(pid))
-    print(counter.bit_array)
+    #print('{} Event happened in {} !'.format(eid,pid))
+    #print("Ip filter\t:",counter.bit_array)
+    counter.add(eid)
+
+    #print("Op filter\t:",counter.bit_array)
+    poset1[eid] = counter.bit_array
+    data = {eid:counter.bit_array}
+    with open('bloom_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")
     return counter
 
 #2 Message send
@@ -45,25 +59,42 @@ def event(pid,counter,eid):
 #pipe creates two objects one for send and one for receive
 #it sends down it's updated counter alongwith the message in the pipe
 def send_message(pipe,pid,counter,eid):
-    global t
+    global t,poset1
     t[pid]+=1
-    counter.add(eid,t[pid])
-    pipe.send(('Empty shell',counter))
-    print('Message sent from ' +str(pid))
-    print(counter.bit_array)
+    #print('Message sent from  ' +str(pid)+" event id "+eid)
+    #print("Ip filter\t:",counter.bit_array)
+    counter.add(eid)
+    #print("Op filter\t:",counter.bit_array)
+    poset1[eid] = counter.bit_array
+    data = {eid:counter.bit_array}
+    with open('bloom_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")   
+    pipe.send((eid,counter))
+    
+    # #print(counter.bit_array)
     return counter
 
 #3 Message Receive
 #receives message, timestamp by invoking recv function on pipe
 #Then it further calculates it's new timestamp depending upon the received timestamp and current timestamp
 def recv_message(pipe,pid,counter,eid):
-    global t
+    global t,poset1
     t[pid]+=1
-    counter.add(eid,t[pid])
-    message,timestamp = pipe.recv();
-    counter = calc_recv_timestamp(timestamp,counter)
-    print('Message received at '+ str(pid))
-    print(counter.bit_array)
+    #print('Message received at '+ str(pid)+"event id "+eid)
+    #print("Ip filter\t:",counter.bit_array)
+    #counter.add(eid)
+    message,timestamp = pipe.recv(); 
+    #print("\tfrom: "+message+"  timestamp\t:",end="")
+    #print(timestamp.bit_array)
+    counter = calc_recv_timestamp(eid,timestamp,counter)
+    #print("Op filter\t:",counter.bit_array)
+    poset1[eid] = counter.bit_array
+    data = {eid:counter.bit_array}
+    with open('bloom_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")
+    # #print(counter.bit_array)
     return counter
 
 #Defenitions for three processes
@@ -71,31 +102,60 @@ def recv_message(pipe,pid,counter,eid):
 
 def process_one(pipe12):
     pid = 0
+
     counter = BloomFilter(n,p,0)
+    ##print('\nInitial Bit array: 1')
+    ##print(counter.bit_array)
+    ##print()
     counter = event(pid,counter,'b')
     counter = send_message(pipe12, pid,counter,'c')
     counter = event(pid, counter,'d')
     counter = recv_message(pipe12,pid,counter,'e')
     counter = event(pid,counter,'f')
-    print_history(counter,pid)
+    
 
 def process_two(pipe21,pipe23):
     pid = 1
+
     counter = BloomFilter(n,p,0)
+    ##print('\nInitial Bit array: 2')
+    ##print(counter.bit_array)
+    ##print()
     counter = recv_message(pipe21,pid,counter,'g')
     counter = send_message(pipe21,pid,counter,'h')
     counter = send_message(pipe23,pid,counter,'i')
     counter = recv_message(pipe23,pid,counter,'j')
-    print_history(counter,pid)
+   
 
 def process_three(pipe32):
     pid = 2
+
     counter = BloomFilter(n,p,0)
+    ##print('\nInitial Bit array: 3')
+    ##print(counter.bit_array)
+    ##print()
     counter = recv_message(pipe32,pid,counter,'k')
     counter = send_message(pipe32,pid,counter,'l')
-    print_history(counter,pid)
 
+   
+
+#to draw a hasse representing casual ordering of the events
+def get_ordering(poset):
+
+    ##print(poset)
+    # poset = list(return_dict.values())
+    hasse = Hasse(poset)
+    #hasse.print_table()
+    print(hasse.hasse)
+    with open('bloom_poset.csv','a') as openfile:
+        csvwriter = csv.writer(openfile,delimiter=',')
+        for i in hasse.table:
+            csvwriter.writerow(i)
 if __name__ == '__main__':
+    
+    poset1 = {}
+    poset= []#to store the bloomfilter values at each event
+    
     oneandtwo, twoandone = Pipe()
     twoandthree, threeandtwo = Pipe()
 
@@ -110,3 +170,12 @@ if __name__ == '__main__':
     process1.join()
     process2.join()
     process3.join()
+    
+    poset = {}
+    with open('bloom_poset.txt') as json_file:
+        for jsonobj in json_file:
+            data = json.loads(jsonobj)#[json.load(line) for line in json_file]
+            poset[list(data.keys())[0]] = data[list(data.keys())[0]]
+    get_ordering(poset)
+    ##print(poset)
+    

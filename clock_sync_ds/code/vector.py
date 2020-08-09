@@ -3,6 +3,7 @@ from os import getpid
 from datetime import datetime
 from hasse import Hasse
 import csv
+import json
 #Helper Functions
 #Print Local timestamp and actual time on machine executing the processes
 def local_time(counter):
@@ -20,95 +21,85 @@ def calc_recv_timestamp(recv_time_stamp, counter):
 #Input is local counter and process id
 #return local_timestamp +1
 
-def event(pid,counter,eid,history):
+def event(pid,counter,eid):
     counter[pid] +=1
     print('Event happened in {} !'.format(pid)+local_time(counter))
-    history[eid] = counter
-
-    return counter,history
+    data = {eid:counter}
+    with open('vector_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")
+    return counter
 
 #2 Message send
 #Requires pid ,counter and a pipe for two way communication
 #pipe creates two objects one for send and one for receive
 #it sends down it's updated counter alongwith the message in the pipe
-def send_message(pipe,pid,counter,eid,history):
+def send_message(pipe,pid,counter,eid):
     counter[pid] += 1
     pipe.send(('Empty shell',counter))
     print('Message sent from ' +str(pid) + local_time(counter))
-    history[eid] = counter
-    # print(eid,"\t",history[eid])
-    return counter,history
+    data = {eid:counter}
+    with open('vector_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")
+    return counter
 
 #3 Message Receive
 #receives message, timestamp by invoking recv function on pipe
 #Then it further calculates it's new timestamp depending upon the received timestamp and current timestamp
-def recv_message(pipe,pid,counter,eid,history):
+def recv_message(pipe,pid,counter,eid):
     counter[pid] += 1
-
+  
     message,timestamp = pipe.recv();
     counter = calc_recv_timestamp(timestamp,counter)
+    data = {eid:counter}
+    with open('vector_poset.txt', 'a') as outfile:
+        json.dump(data, outfile)
+        outfile.write("\n")
     print('Message received at '+ str(pid) + local_time(counter))
-    history[eid] = counter
-    return counter,history
+    return counter
 
 #Defenitions for three processes
 #Each process starts with getting it's process id and sets it's counter to 0
 
-def process_one(pipe12,return_dict):
+def process_one(pipe12):
     pid = 0
-    history={}
     counter = [0,0,0]
-    counter,history = event(pid,counter,'b',history)
-    return_dict['b'] = history['b']
-    counter,history = send_message(pipe12, pid,counter,'c',history)
-    return_dict['c'] = history['c']
-    counter,history = event(pid, counter,'d',history)
-    return_dict['d'] = history['d']
-    counter,history = recv_message(pipe12,pid,counter,'e',history)
-    return_dict['e'] = history['e']
-    counter,history = event(pid,counter,'f',history)
-    return_dict['f'] = history['f']
-def process_two(pipe21,pipe23,return_dict):
+    counter = event(pid,counter,'b')
+    counter = send_message(pipe12, pid,counter,'c')
+    counter = event(pid, counter,'d')
+    counter = recv_message(pipe12,pid,counter,'e')
+    counter = event(pid,counter,'f')
+def process_two(pipe21,pipe23):
     pid = 1
-    history={}
     counter = [0,0,0]
-    counter,history = recv_message(pipe21,pid,counter,'g',history)
-    return_dict['g'] = history['g']
-    counter,history = send_message(pipe21,pid,counter,'h',history)
-    return_dict['h'] = history['h']
-    counter,history = send_message(pipe23,pid,counter,'i',history)
-    return_dict['i'] = history['i']
-    counter,history = recv_message(pipe23,pid,counter,'j',history)
-    return_dict['j'] = history['j']
-def process_three(pipe32,return_dict):
+    counter = recv_message(pipe21,pid,counter,'g')
+    counter = send_message(pipe21,pid,counter,'h')
+    counter = send_message(pipe23,pid,counter,'i')
+    counter = recv_message(pipe23,pid,counter,'j')
+def process_three(pipe32):
     pid = 2
     counter = [0,0,0]
-    history={}
-    counter,history = recv_message(pipe32,pid,counter,'k',history)
-    return_dict['k'] = history['k']
-    counter,history = send_message(pipe32,pid,counter,'l',history)
-    return_dict['l'] = history['l']
+    counter = recv_message(pipe32,pid,counter,'k')
+    counter = send_message(pipe32,pid,counter,'l')
 def get_ordering(poset):
 
-    print(poset)
-    # poset = list(return_dict.values())
+    #print(poset)
+    
     hasse = Hasse(poset)
-    hasse.print_table()
+    #hasse.print_table()
     print(hasse.hasse)
     with open('vector_poset.csv','a') as openfile:
         csvwriter = csv.writer(openfile,delimiter=',')
         for i in hasse.table:
             csvwriter.writerow(i)
 if __name__ == '__main__':
-    #History dictionary to store each process's counter value
-    global history
-    history = {}
+
     oneandtwo, twoandone = Pipe()
     twoandthree, threeandtwo = Pipe()
-    return_dict = Manager().dict()
-    process1 = Process(target=process_one,args=(oneandtwo,return_dict))
-    process2 = Process(target=process_two,args=(twoandone,twoandthree,return_dict))
-    process3 = Process(target=process_three,args=(threeandtwo,return_dict))
+    process1 = Process(target=process_one,args=(oneandtwo,))
+    process2 = Process(target=process_two,args=(twoandone,twoandthree))
+    process3 = Process(target=process_three,args=(threeandtwo,))
 
     process1.start()
     process2.start()
@@ -117,7 +108,11 @@ if __name__ == '__main__':
     process1.join()
     process2.join()
     process3.join()
-    for i in return_dict.keys():
-        print(i,return_dict[i])
-    poset = return_dict
+    
+    poset = {}
+    with open('vector_poset.txt') as json_file:
+        for jsonobj in json_file:
+            data = json.loads(jsonobj)#[json.load(line) for line in json_file]
+            poset[list(data.keys())[0]] = data[list(data.keys())[0]]
     get_ordering(poset)
+ 
