@@ -3,7 +3,7 @@ import mmh3
 import string 
 import random
 # from bitarray import bitarray
-#Referenced from https://www.geeksforgeeks.org/bloom-filters-introduction-and-python-implementation/
+
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 class BloomFilter(object):
