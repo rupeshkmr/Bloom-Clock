@@ -3,8 +3,7 @@ from os import getpid
 from datetime import datetime
 import csv
 from hasse import Hasse
-#https://towardsdatascience.com/understanding-lamport-timestamps-with-pythons-multiprocessing-library-12a6427881c6?gi=183e708bc4bf
-#Helper Functions
+
 #Print Local timestamp and actual time on machine executing the processes
 def local_time(counter):
     return '(LAMPORT_TIME={}, LOCAL_TIME={})'.format(counter,datetime.now())
